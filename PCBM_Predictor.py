@@ -16,10 +16,10 @@ feature_names = [
     "Chemotherapy", "Brain Metastases", "Median Household Income", "Lung Metastases", "Radiotherapy"
 ]
 default_values = {
-    "Liver Metastases": 2, "T Stage": 0, "Gleason Score": 1, "Age at Diagnosis": 20, 
-    "Months to Treatment": 0, "Histological Type": 39, "Surgery": 0, "PSA": 973,
-    "Marital Status": 0, "N Stage": 3, "Grade": 0, "Race": 3, "Chemotherapy": 0,
-    "Brain Metastases": 0, "Median Household Income": 8, "Lung Metastases": 2, "Radiotherapy": 2
+    "Liver Metastases": 0, "T Stage": 10, "Gleason Score": 10, "Age at Diagnosis": 34, 
+    "Months to Treatment": 24, "Histological Type": 39, "Surgery": 0, "PSA": 187,
+    "Marital Status": 1, "N Stage": 1, "Grade": 1, "Race": 3, "Chemotherapy": 0,
+    "Brain Metastases": 0, "Median Household Income": 8, "Lung Metastases": 0, "Radiotherapy": 0
 }
 
 # Define a function to turn log odds into probabilities
@@ -41,35 +41,56 @@ features = pd.DataFrame([list(user_inputs.values())], columns=feature_names)
 # Initialize prediction results
 prediction_results = {}
 
+# # Process the button click for prediction
+# if st.button("Predict Survival"):
+#     for label in labels:
+#         # Load the model using joblib
+#         model = joblib.load(f'online_xgb_model_{label}.pkl')
+        
+#         # Make prediction using predict_proba to get probability estimates
+#         probabilities = model.predict_proba(features)
+#         # Select the probability of the positive class (assuming binary classification)
+#         probability_prediction = probabilities[0][1]
+        
+#         # Store the prediction result
+#         prediction_results[label] = probability_prediction
+
+        
+#     # Display prediction results
+#     st.write("### Prediction Results")
+#     for label, probability in prediction_results.items():
+#         st.write(f"**{label}:** {probability:.2f}")
+
 # Process the button click for prediction
 if st.button("Predict Survival"):
     for label in labels:
         # Load the model using joblib
-        model = joblib.load(f'xgb_model_{label}.pkl')
-
-        # Convert the DataFrame to DMatrix
-        dmatrix = xgb.DMatrix(features)
+        model = joblib.load(f'online_xgb_model_{label}.pkl')
         
-        # Make prediction
-        logit_prediction = model.predict(dmatrix)
-        probability_prediction = logit_to_prob(logit_prediction)[0]
+        # Make class prediction
+        predicted_class = model.predict(features)[0]
+        
+        # Make probability prediction using predict_proba
+        probabilities = model.predict_proba(features)
+        probability_prediction = probabilities[0][1]  # Probability of the positive class
         
         # Store the prediction result
-        prediction_results[label] = probability_prediction
-    
+        prediction_results[label] = (predicted_class, probability_prediction)
+        
     # Display prediction results
     st.write("### Prediction Results")
-    for label, probability in prediction_results.items():
-        st.write(f"**{label}:** {probability:.2f}")
-
+    for label, (predicted_class, probability) in prediction_results.items():
+        st.write(f"**{label}:** Predicted class = {predicted_class}, Probability = {probability:.2f}")
+    
     # SHAP analysis
     for label in labels:
-        # For SHAP, use the loaded model
-        explainer = shap.TreeExplainer(model)
-        shap_values = explainer.shap_values(features)
+        # Reload model for SHAP calculation
+        model = joblib.load(f'online_xgb_model_{label}.pkl')
+        explainer = shap.Explainer(model)
+        shap_values = explainer(features)
 
         # Visualize the first prediction's explanation
         st.write(f"### SHAP Force Plot for {label}")
-        shap.force_plot(explainer.expected_value, shap_values[0], features, matplotlib=True)
+        shap.force_plot(explainer.expected_value, shap_values.values[0], features, matplotlib=True, show=False)
         plt.savefig(f"shap_force_plot_{label}.png", bbox_inches='tight', dpi=1200)
         st.image(f"shap_force_plot_{label}.png")
