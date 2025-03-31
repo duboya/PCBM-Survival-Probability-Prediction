@@ -25,7 +25,8 @@ st.title("PCBM Survival Probability Prediction")
 
 # Disclaimer for research use
 st.write(
-    "**Disclaimer:** This tool provides survival predictions based on machine learning models and is intended for research use only. It is not a substitute for professional medical advice. Patients should consult healthcare professionals for clinical decisions.")
+    "**Disclaimer:** This tool provides survival predictions based on machine learning models and is intended for research use only. It is not a substitute for professional medical advice. Patients should consult healthcare professionals for clinical decisions."
+)
 
 # Get user inputs
 user_inputs = {}
@@ -65,7 +66,7 @@ if st.button("Predict Survival"):
         if survival_status == "Surviving":
             advice = (
                 f"According to our model, the probability of surviving {label} is {probability_percent:.1f}%. "
-                "It's important to consult with your oncologist for a treatment plan."
+                "Please consult with your oncologist for a treatment plan."
             )
         else:
             advice = (
@@ -81,12 +82,12 @@ if st.button("Predict Survival"):
         # Load the model using joblib
         model = joblib.load(f'online_lr_model_{label}.pkl')
 
-        # Generate SHAP values
-        explainer = shap.Explainer(model)
-        shap_values = explainer(features)
-
+        # Generate SHAP values using KernelExplainer
+        explainer = shap.KernelExplainer(model.predict_proba, features)
+        shap_values = explainer.shap_values(features)
+        
         # Visualize the first prediction's explanation
         fig, ax = plt.subplots()
-        shap.plots.force(explainer.expected_value[0], shap_values.values[0], features.iloc[0, :], matplotlib=True)
+        shap.force_plot(explainer.expected_value[1], shap_values[1][0], features.iloc[0, :], matplotlib=True)
         plt.savefig(f"shap_force_plot_{label}.png", bbox_inches='tight', dpi=200)
-        st.image(f"shap_force_plot_{label}.png")
+        st.image(f"shap_force_plot_{label}.png", use_column_width=True)
