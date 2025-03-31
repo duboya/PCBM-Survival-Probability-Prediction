@@ -20,6 +20,10 @@ default_values = {
 
 # Streamlit user interface title
 st.title("PCBM Survival Probability Prediction")
+# Disclaimer for research use
+st.write(
+    "**Disclaimer:** This tool provides survival predictions based on machine learning models and is intended for research use only. It is not a substitute for professional medical advice. Patients should consult healthcare professionals for clinical decisions."
+)
 
 # Get user inputs
 user_inputs = {}
