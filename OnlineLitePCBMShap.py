@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import joblib
 import shap
+import matplotlib.pyplot as plt
 
 # Define labels for survival time predictions
 labels = ["year1_survival", "year3_survival", "year5_survival"]
@@ -74,11 +75,23 @@ if st.button("Predict Survival"):
 
         st.write(f"**Advice for {label}:** {advice}")
 
-        # SHAP Explanation
-        explainer = shap.Explainer(model, features)
+        # # SHAP Explanation
+        # explainer = shap.Explainer(model, features)
+        # shap_values = explainer(features)
+        # 
+        # st.write(f"**SHAP Plot for {label}:**")
+        # shap_html = shap.plots._waterfall.waterfall_legacy(shap_values[0], show=False)
+        # st.components.v1.html(shap_html, height=300)
+        # 
+    # SHAP analysis
+    for label in labels:
+        # Reload model for SHAP calculation
+        # model = joblib.load(f'online_xgb_model_{label}.pkl')
+        model = joblib.load(f'online_lr_model_{label}.pkl')
+        explainer = shap.Explainer(model)
         shap_values = explainer(features)
-
-        st.write(f"**SHAP Plot for {label}:**")
-        shap_html = shap.plots._waterfall.waterfall_legacy(shap_values[0], show=False)
-        st.components.v1.html(shap_html, height=300)
-
+        # Visualize the first prediction's explanation
+        st.write(f"### SHAP Force Plot for {label}")
+        shap.force_plot(explainer.expected_value, shap_values.values[0], features, matplotlib=True, show=False)
+        plt.savefig(f"shap_force_plot_{label}.png", bbox_inches='tight', dpi=1200)
+        st.image(f"shap_force_plot_{label}.png")
