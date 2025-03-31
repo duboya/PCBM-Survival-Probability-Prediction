@@ -77,7 +77,6 @@ if st.button("Predict Survival"):
         st.write(f"**Advice for {label}:** {advice}")
 
     # SHAP analysis
-    shap.initjs()
     for label in labels:
         st.write(f"### SHAP Explanation for {label}")
         # Load the model using joblib
@@ -88,5 +87,9 @@ if st.button("Predict Survival"):
         shap_values = explainer.shap_values(features)
         
         # Visualize the first prediction's explanation as HTML
-        shap_html = shap.force_plot(explainer.expected_value[1], shap_values[1][0], features.iloc[0, :])
-        st.components.v1.html(shap_html, height=300)
+        shap_html = shap.force_plot(explainer.expected_value[1], shap_values[1][0], features.iloc[0, :], show=False)
+        shap_html.save_html(f'shap_{label}.html')
+
+        with open(f'shap_{label}.html', 'r', encoding='utf-8') as f:
+            shap_html = f.read()
+            st.components.v1.html(shap_html, height=300)
