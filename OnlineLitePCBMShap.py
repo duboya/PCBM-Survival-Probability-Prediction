@@ -20,7 +20,7 @@ default_values = {
     "Brain Metastases": 0, "Median Household Income": 8, "Lung Metastases": 0, "Radiotherapy": 0
 }
 
-# Streamlit user interface
+# Streamlit user interface title
 st.title("PCBM Survival Probability Prediction")
 
 # Disclaimer for research use
@@ -47,32 +47,31 @@ if st.button("Predict Survival"):
 
         # Make class prediction
         predicted_class = model.predict(features)[0]
+        # Interpret the predicted class as "Surviving" or "Not Surviving"
+        survival_status = "Surviving" if predicted_class == 1 else "Not Surviving"
 
         # Make probability prediction using predict_proba
         probabilities = model.predict_proba(features)
         probability_prediction = probabilities[0][1]  # Probability of survival
 
         # Store the prediction result
-        prediction_results[label] = (predicted_class, probability_prediction)
+        prediction_results[label] = (survival_status, probability_prediction)
 
     # Display prediction results
     st.write("### Prediction Results")
-    for label, (predicted_class, probability) in prediction_results.items():
-        st.write(f"**{label}:** Predicted class = {predicted_class}, Probability of survival = {probability:.2f}")
-
+    for label, (survival_status, probability) in prediction_results.items():
+        st.write(f"**{label}:** Predicted status = {survival_status}, Probability of survival = {probability:.2f}")
         # Generate advice based on prediction results
         probability_percent = probability * 100
-        if predicted_class == 1:
+        if survival_status == "Surviving":
             advice = (
-                f"According to our model, you have a higher probability of survival. "
-                f"The model predicts that your probability of surviving {label} is {probability_percent:.1f}%. "
-                "It's important to continue following your treatment plan and have regular consultations with your oncologist."
+                f"According to our model, the probability of surviving {label} is {probability_percent:.1f}%. "
+                "Please consult with your oncologist for a treatment plan."
             )
         else:
             advice = (
-                f"According to our model, you have a lower probability of survival. "
-                f"The model predicts that your probability of not surviving {label} is {100 - probability_percent:.1f}%. "
-                "We recommend discussing additional treatment options with your healthcare provider and maintaining ongoing follow-up."
+                f"According to our model, the probability of not surviving {label} is {100 - probability_percent:.1f}%. "
+                "Discuss additional treatment options with your healthcare provider."
             )
 
         st.write(f"**Advice for {label}:** {advice}")
@@ -80,15 +79,15 @@ if st.button("Predict Survival"):
     # SHAP analysis
     for label in labels:
         st.write(f"### SHAP Explanation for {label}")
-
         # Load the model using joblib
         model = joblib.load(f'online_lr_model_{label}.pkl')
 
-        # Generate SHAP values
-        explainer = shap.Explainer(model.predict_proba, features)
-        shap_values = explainer(features)
-
+        # Generate SHAP values using KernelExplainer
+        background = features  # Use the same input as background for simplicity
+        explainer = shap.KernelExplainer(model.predict_proba, background)
+        shap_values = explainer.shap_values(features)
+        
         # Visualize the first prediction's explanation
-        shap.force_plot(explainer.expected_value[1], shap_values[1][0], features.iloc[0, :], matplotlib=True)
-        plt.savefig(f"shap_force_plot_{label}.png", bbox_inches='tight', dpi=300)
-        st.image(f"shap_force_plot_{label}.png", use_column_width=True)
+        fig, ax = plt.subplots()
+        shap.force_plot(explainer.expected_value[1], shap_values[1][0], features.iloc[0, :], matplotlib=True, show=False)
+        st.pyplot(fig)
