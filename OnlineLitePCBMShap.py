@@ -75,23 +75,18 @@ if st.button("Predict Survival"):
 
         st.write(f"**Advice for {label}:** {advice}")
 
-        # # SHAP Explanation
-        # explainer = shap.Explainer(model, features)
-        # shap_values = explainer(features)
-        # 
-        # st.write(f"**SHAP Plot for {label}:**")
-        # shap_html = shap.plots._waterfall.waterfall_legacy(shap_values[0], show=False)
-        # st.components.v1.html(shap_html, height=300)
-        # 
     # SHAP analysis
     for label in labels:
-        # Reload model for SHAP calculation
-        # model = joblib.load(f'online_xgb_model_{label}.pkl')
+        st.write(f"### SHAP Force Plot for {label}")
+        # Load the model using joblib
         model = joblib.load(f'online_lr_model_{label}.pkl')
+
+        # Generate SHAP values
         explainer = shap.Explainer(model)
         shap_values = explainer(features)
+
         # Visualize the first prediction's explanation
-        st.write(f"### SHAP Force Plot for {label}")
-        shap.force_plot(explainer.expected_value, shap_values.values[0], features, matplotlib=True, show=False)
-        plt.savefig(f"shap_force_plot_{label}.png", bbox_inches='tight', dpi=1200)
+        fig, ax = plt.subplots()
+        shap.plots.force(explainer.expected_value[0], shap_values.values[0], features.iloc[0, :], matplotlib=True)
+        plt.savefig(f"shap_force_plot_{label}.png", bbox_inches='tight', dpi=200)
         st.image(f"shap_force_plot_{label}.png")
