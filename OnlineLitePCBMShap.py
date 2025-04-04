@@ -78,14 +78,23 @@ if st.button("Predict Survival"):
 
         st.write(f"**Advice for {label}:** {advice}")
 
+    # Sample background data for KernelExplainer
+    background_data = features.mean().values.reshape(1, -1)  # Use the mean of the feature values
+
     # SHAP analysis
     for label in labels:
         # Reload model for SHAP calculation
         model = joblib.load(f'online_lr_model_{label}.pkl')
-        explainer = shap.Explainer(model)
-        shap_values = explainer(features)
+
+        # Use KernelExplainer because scikit-learn logistic regression may not be natively supported
+        explainer = shap.KernelExplainer(model.predict_proba, background_data)
+        shap_values = explainer.shap_values(features)
+
         # Visualize the first prediction's explanation
         st.write(f"### SHAP Force Plot for {label}")
-        shap.force_plot(explainer.expected_value, shap_values.values[0], features, matplotlib=True, show=False)
+        fig, ax = plt.subplots()
+        shap.force_plot(explainer.expected_value[1], shap_values[1][0], features.iloc[0], matplotlib=True, show=False,
+                        ax=ax)
+        plt.axis('off')  # Hide the axes for a cleaner plot
         plt.savefig(f"shap_force_plot_{label}.png", bbox_inches='tight', dpi=1200)
         st.image(f"shap_force_plot_{label}.png")
