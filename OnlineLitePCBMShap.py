@@ -10,11 +10,11 @@ labels = ["year1_survival", "year3_survival", "year5_survival"]
 # Define feature names and default values
 feature_names = [
     "Liver Metastases", "T Stage", "Gleason Score", "Age at Diagnosis", "Months to Treatment",
-    "Histological Type", "Surgery", "PSA", "Marital Status", "N Stage", "Grade", "Race", 
+    "Histological Type", "Surgery", "PSA", "Marital Status", "N Stage", "Grade", "Race",
     "Chemotherapy", "Brain Metastases", "Median Household Income", "Lung Metastases", "Radiotherapy"
 ]
 default_values = {
-    "Liver Metastases": 0, "T Stage": 3, "Gleason Score": 10, "Age at Diagnosis": 34, 
+    "Liver Metastases": 0, "T Stage": 3, "Gleason Score": 10, "Age at Diagnosis": 34,
     "Months to Treatment": 24, "Histological Type": 39, "Surgery": 0, "PSA": 187,
     "Marital Status": 1, "N Stage": 1, "Grade": 1, "Race": 3, "Chemotherapy": 0,
     "Brain Metastases": 0, "Median Household Income": 8, "Lung Metastases": 0, "Radiotherapy": 0
@@ -44,28 +44,29 @@ if st.button("Predict Survival"):
     for label in labels:
         # Load the model using joblib
         model = joblib.load(f'online_lr_model_{label}.pkl')
-        
+
         # Make class prediction
         predicted_class = model.predict(features)[0]
         # Interpret the predicted class as "Surviving" or "Not Surviving"
         survival_status = "Surviving" if predicted_class == 1 else "Not Surviving"
-        
+
         # Make probability prediction using predict_proba
         probabilities = model.predict_proba(features)
         probability_prediction = probabilities[0][1]  # Probability of survival
-        
+
         # Store the prediction result
         prediction_results[label] = (survival_status, probability_prediction)
-        
-        # SHAP explanation
-        explainer = shap.Explainer(model, features)
-        shap_values = explainer(features)
-        
-        # Display SHAP plots
-        st.write(f"### SHAP Explanation for {label}")
-        fig, ax = plt.subplots(figsize=(10, 5))
-        shap.plots.waterfall(shap_values[0], max_display=10)
-        st.pyplot(fig)
+
+        # SHAP analysis
+        explainer = shap.LinearExplainer(model, features, feature_perturbation="interventional")
+        shap_values = explainer.shap_values(features)
+
+        # Visualize the first prediction's explanation
+        st.write(f"### SHAP Force Plot for {label}")
+        fig = shap.force_plot(explainer.expected_value, shap_values[0], features.iloc[0], matplotlib=True, show=False)
+        plt.savefig(f"shap_force_plot_{label}.png', bbox_inches='tight', dpi=1200")
+        plt.close(fig)
+        st.image(f"shap_force_plot_{label}.png")
 
     # Display prediction results
     st.write("### Prediction Results")
@@ -85,5 +86,5 @@ if st.button("Predict Survival"):
                 f"The model predicts that your probability of not surviving {label} is {100 - probability_percent:.1f}%. "
                 "We recommend discussing additional treatment options with your healthcare provider and maintaining ongoing follow-up."
             )
-        
+
         st.write(f"**Advice for {label}:** {advice}")
