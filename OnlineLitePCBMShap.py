@@ -57,17 +57,6 @@ if st.button("Predict Survival"):
         # Store the prediction result
         prediction_results[label] = (survival_status, probability_prediction)
 
-        # SHAP analysis
-        explainer = shap.LinearExplainer(model, features, feature_perturbation="interventional")
-        shap_values = explainer.shap_values(features)
-
-        # Visualize the first prediction's explanation
-        st.write(f"### SHAP Force Plot for {label}")
-        fig = shap.force_plot(explainer.expected_value, shap_values[0], features.iloc[0], matplotlib=True, show=False)
-        plt.savefig(f"shap_force_plot_{label}.png', bbox_inches='tight', dpi=1200")
-        plt.close(fig)
-        st.image(f"shap_force_plot_{label}.png")
-
     # Display prediction results
     st.write("### Prediction Results")
     for label, (survival_status, probability) in prediction_results.items():
@@ -88,3 +77,15 @@ if st.button("Predict Survival"):
             )
 
         st.write(f"**Advice for {label}:** {advice}")
+
+    # SHAP analysis
+    for label in labels:
+        # Reload model for SHAP calculation
+        model = joblib.load(f'online_lr_model_{label}.pkl')
+        explainer = shap.Explainer(model)
+        shap_values = explainer(features)
+        # Visualize the first prediction's explanation
+        st.write(f"### SHAP Force Plot for {label}")
+        shap.force_plot(explainer.expected_value, shap_values.values[0], features, matplotlib=True, show=False)
+        plt.savefig(f"shap_force_plot_{label}.png", bbox_inches='tight', dpi=1200)
+        st.image(f"shap_force_plot_{label}.png")
