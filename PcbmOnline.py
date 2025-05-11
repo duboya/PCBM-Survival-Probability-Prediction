@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import joblib
 import shap
+import numpy as np
 
 # Define labels for survival time predictions
 labels = ["year1_survival", "year3_survival", "year5_survival"]
@@ -49,21 +50,16 @@ if st.button("Predict Survival"):
 
         prediction_results[label] = (survival_status, probability_prediction)
 
-        try:
-            # Use KernelExplainer if LinearExplainer fails
-            explainer = shap.LinearExplainer(model, features, feature_dependence='independent')
-        except ValueError:
-            explainer = shap.KernelExplainer(model.predict_proba, features)
-
-        # Calculate SHAP values
+        # Calculate SHAP values using LinearExplainer
+        explainer = shap.LinearExplainer(model, features, feature_dependence='independent')
         shap_values = explainer.shap_values(features)
 
-        # Generate SHAP force plot and convert to HTML
-        shap_html = shap.force_plot(explainer.expected_value, shap_values[0], features.iloc[0],
+        # Create SHAP force plot and convert to HTML
+        shap_html = shap.force_plot(explainer.expected_value, shap_values, features.iloc[0], 
                                      matplotlib=False, show=False)
 
         # Render the SHAP force plot HTML content in Streamlit
-        st.components.v1.html(shap_html, height=400, width=1000)
+        st.components.v1.html(shap_html, height=300, width=700)
 
     # Display prediction results
     st.write("### Prediction Results")
